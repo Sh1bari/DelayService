@@ -30,9 +30,8 @@ public class MainController {
     @PostMapping("/send-to-earth")
     public ResponseEntity<?> init(@RequestPart(name = "files", required = false) List<MultipartFile> files,
                                   @ModelAttribute Document document){
-        //System.out.println(document.toString());
-        //System.out.println(files.size());
-        //CompletableFuture.runAsync(() -> delayService.processWithDelay(test));
+
+        CompletableFuture.runAsync(() -> delayService.sendToEarthWithDelay(files, document));
 
         return ResponseEntity
                 .status(HttpStatus.OK)
