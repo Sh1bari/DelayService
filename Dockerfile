@@ -1,7 +1,9 @@
 FROM maven:3.8.4-openjdk-17 AS build
 
 ARG PORT
+ARG HOST
 ENV PORT=${PORT}
+ENV HOST=HOST
 
 ARG JAR_FILE=*.jar
 WORKDIR /build
