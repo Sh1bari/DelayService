@@ -2,6 +2,7 @@ package com.example.delayservice.services;
 
 import com.example.delayservice.models.Document;
 import lombok.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
@@ -27,6 +28,9 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class DelayService {
 
+    @Value("${host}")
+    private String host;
+
     private Integer delaySec = 3;
     private final RestTemplate restTemplate;
     private final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
@@ -34,7 +38,7 @@ public class DelayService {
     public void sendToEarthWithDelay(List<MultipartFile> files, Document document) {
         // Задержка
         executorService.schedule(() -> {
-            sendToEarth("https://earthapi.cry1s.ru/api/document/send-to-earth",
+            sendToEarth(host + "/api/document/send-to-earth",
                     files,
                     document);
         }, delaySec, TimeUnit.SECONDS);
