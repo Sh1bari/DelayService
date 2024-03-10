@@ -5,6 +5,7 @@ import lombok.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -16,6 +17,9 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -38,13 +42,33 @@ public class DelayService {
     public void sendToEarthWithDelay(List<MultipartFile> files, Document document) {
         // Задержка
         executorService.schedule(() -> {
-            sendToEarth(host + "/api/document/send-to-earth",
-                    files,
-                    document);
+            try {
+                Path tempDir = Files.createTempDirectory("upload");
+                List<Path> tempFiles = new ArrayList<>();
+
+                for (MultipartFile file : files) {
+                    Path tempFile = Files.createTempFile(tempDir, "file", file.getOriginalFilename());
+                    tempFiles.add(tempFile);
+
+                    // Сохраняем файл во временную директорию
+                    file.transferTo(tempFile.toFile());
+                }
+
+                // Вызываем метод отправки на землю, передавая временные файлы
+                sendToEarth(host + "/api/document/send-to-earth", tempFiles, document);
+
+                // Удаляем временные файлы и директорию после завершения
+                for (Path tempFile : tempFiles) {
+                    Files.deleteIfExists(tempFile);
+                }
+                Files.deleteIfExists(tempDir);
+            } catch (IOException e) {
+                e.printStackTrace(); // Обработка ошибок
+            }
         }, delaySec, TimeUnit.SECONDS);
     }
 
-    public void sendToEarth(String url, List<MultipartFile> files, Document document) {
+    public void sendToEarth(String url, List<Path> files, Document document) {
         // Создание объекта RestTemplate
         RestTemplate restTemplate = new RestTemplate();
 
@@ -54,16 +78,12 @@ public class DelayService {
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
         if (files != null) {
-            for (MultipartFile file : files) {
+            for (Path file : files) {
                 try {
-                    ByteArrayResource resource = new ByteArrayResource(file.getBytes()) {
-                        @Override
-                        public String getFilename() {
-                            return file.getOriginalFilename();
-                        }
-                    };
+                    // Используем FileSystemResource для передачи файла
+                    FileSystemResource resource = new FileSystemResource(file.toFile());
                     body.add("files", resource);
-                } catch (IOException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }

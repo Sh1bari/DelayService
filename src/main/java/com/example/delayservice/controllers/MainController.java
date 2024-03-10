@@ -32,7 +32,6 @@ public class MainController {
                                   @ModelAttribute Document document){
 
         CompletableFuture.runAsync(() -> delayService.sendToEarthWithDelay(files, document));
-
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .build();
