@@ -19,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -40,48 +41,21 @@ public class DelayService {
     private final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
 
     public void sendToEarthWithDelay(List<MultipartFile> files, Document document) {
-        // Задержка
-        executorService.schedule(() -> {
-            try {
-                Path tempDir = Files.createTempDirectory("upload");
-                List<Path> tempFiles = new ArrayList<>();
 
-                for (MultipartFile file : files) {
-                    Path tempFile = Files.createTempFile(tempDir, "file", file.getOriginalFilename());
-                    tempFiles.add(tempFile);
-
-                    // Сохраняем файл во временную директорию
-                    file.transferTo(tempFile.toFile());
-                }
-
-                // Вызываем метод отправки на землю, передавая временные файлы
-                sendToEarth(host + "/api/document/send-to-earth", tempFiles, document);
-
-                // Удаляем временные файлы и директорию после завершения
-                for (Path tempFile : tempFiles) {
-                    Files.deleteIfExists(tempFile);
-                }
-                Files.deleteIfExists(tempDir);
-            } catch (IOException e) {
-                e.printStackTrace(); // Обработка ошибок
-            }
-        }, delaySec, TimeUnit.SECONDS);
-    }
-
-    public void sendToEarth(String url, List<Path> files, Document document) {
-        // Создание объекта RestTemplate
-        RestTemplate restTemplate = new RestTemplate();
-
-        // Подготовка параметров запроса
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
         if (files != null) {
-            for (Path file : files) {
+            for (MultipartFile file : files) {
                 try {
-                    // Используем FileSystemResource для передачи файла
-                    FileSystemResource resource = new FileSystemResource(file.toFile());
+                    // Используйте ByteArrayResource для передачи файла
+                    ByteArrayResource resource = new ByteArrayResource(file.getBytes()) {
+                        @Override
+                        public String getFilename() {
+                            return file.getOriginalFilename();
+                        }
+                    };
                     body.add("files", resource);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -99,6 +73,16 @@ public class DelayService {
 
         // Создание объекта HttpEntity для передачи параметров
         HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+        // Задержка
+        executorService.schedule(() -> {
+
+            sendToEarth(host + "/api/document/send-to-earth", requestEntity);
+
+        }, delaySec, TimeUnit.SECONDS);
+    }
+
+    public void sendToEarth(String url, HttpEntity<MultiValueMap<String, Object>> requestEntity) {
+
 
         // Отправка POST-запроса
         ResponseEntity<String> response = restTemplate.postForEntity(url, requestEntity, String.class);
