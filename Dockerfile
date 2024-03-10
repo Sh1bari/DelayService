@@ -1,7 +1,9 @@
 FROM maven:3.8.4-openjdk-17 AS build
 
 ARG PORT
+ARG HOST
 ENV PORT=${PORT}
+ENV HOST=HOST
 
 ARG JAR_FILE=*.jar
 WORKDIR /build
@@ -17,7 +19,6 @@ RUN --mount=type=cache,target=/root/.m2 \
 FROM bellsoft/liberica-openjdk-debian:17
 RUN addgroup spring-boot-group && adduser --ingroup spring-boot-group spring-boot
 USER spring-boot:spring-boot-group
-VOLUME /tmp
 WORKDIR /application
 COPY --from=build /build/target/extracted/application .
 COPY --from=build /build/target/extracted/dependencies .
