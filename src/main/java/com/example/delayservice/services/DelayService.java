@@ -40,39 +40,7 @@ public class DelayService {
     private final RestTemplate restTemplate;
     private final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
 
-    public void sendToEarthWithDelay(List<MultipartFile> files, Document document) {
-
-        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-
-        if (files != null) {
-            for (MultipartFile file : files) {
-                try {
-                    // Используйте ByteArrayResource для передачи файла
-                    ByteArrayResource resource = new ByteArrayResource(file.getBytes()) {
-                        @Override
-                        public String getFilename() {
-                            return file.getOriginalFilename();
-                        }
-                    };
-                    body.add("files", resource);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-
-        // Добавление остальных параметров в параметры запроса
-        body.add("id", document.getId());
-        body.add("title", document.getTitle());
-        body.add("owner", document.getOwner());
-        body.add("sentTime", document.getSentTime());
-        body.add("createdAt", document.getCreatedAt());
-        body.add("payload", document.getPayload());
-
-        // Создание объекта HttpEntity для передачи параметров
-        HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+    public void sendToEarthWithDelay(HttpEntity<MultiValueMap<String, Object>> requestEntity) {
         // Задержка
         executorService.schedule(() -> {
 
