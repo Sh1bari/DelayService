@@ -19,7 +19,6 @@ RUN --mount=type=cache,target=/root/.m2 \
 FROM bellsoft/liberica-openjdk-debian:17
 RUN addgroup spring-boot-group && adduser --ingroup spring-boot-group spring-boot
 USER spring-boot:spring-boot-group
-VOLUME /tmp
 WORKDIR /application
 COPY --from=build /build/target/extracted/application .
 COPY --from=build /build/target/extracted/dependencies .
